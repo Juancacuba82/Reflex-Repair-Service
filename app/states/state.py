@@ -5,12 +5,20 @@ from typing import TypedDict, Optional
 import reflex as rx
 
 REVIEWS_FILENAME = "reviews.json"
+CONTACTS_FILENAME = "contacts.json"
 
 
 class Review(TypedDict):
     name: str
     rating: int
     comment: str
+
+
+class ContactSubmission(TypedDict):
+    name: str
+    email: str
+    phone: str
+    message: str
 
 
 DEFAULT_REVIEWS: list[Review] = [
@@ -28,11 +36,34 @@ DEFAULT_REVIEWS: list[Review] = [
 _reviews_cache: Optional[list[Review]] = None
 
 
-def get_reviews_file_path() -> Path:
-    """Get the path to the reviews JSON file inside the assets directory."""
+def get_assets_dir() -> Path:
+    """Get the path to the assets directory."""
     assets_dir = Path("assets")
     assets_dir.mkdir(parents=True, exist_ok=True)
-    return assets_dir / REVIEWS_FILENAME
+    return assets_dir
+
+
+def load_from_json_file(filename: str, default_data: list) -> list:
+    """Generic function to load data from a JSON file in the assets directory."""
+    file_path = get_assets_dir() / filename
+    if file_path.exists():
+        try:
+            with file_path.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except (IOError, json.JSONDecodeError) as e:
+            logging.exception(f"Error loading {filename}: {e}")
+    save_to_json_file(filename, default_data)
+    return default_data.copy()
+
+
+def save_to_json_file(filename: str, data: list):
+    """Generic function to save data to a JSON file in the assets directory."""
+    file_path = get_assets_dir() / filename
+    try:
+        with file_path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except IOError as e:
+        logging.exception(f"Error saving {filename}: {e}")
 
 
 def load_reviews_from_file() -> list[Review]:
@@ -40,16 +71,7 @@ def load_reviews_from_file() -> list[Review]:
     global _reviews_cache
     if _reviews_cache is not None:
         return _reviews_cache
-    reviews_file = get_reviews_file_path()
-    if reviews_file.exists():
-        try:
-            with reviews_file.open("r", encoding="utf-8") as f:
-                _reviews_cache = json.load(f)
-                return _reviews_cache
-        except (IOError, json.JSONDecodeError) as e:
-            logging.exception(f"Error loading reviews file: {e}")
-    _reviews_cache = DEFAULT_REVIEWS.copy()
-    save_reviews_to_file(_reviews_cache)
+    _reviews_cache = load_from_json_file(REVIEWS_FILENAME, DEFAULT_REVIEWS)
     return _reviews_cache
 
 
@@ -57,13 +79,7 @@ def save_reviews_to_file(reviews: list[Review]):
     """Save reviews to the JSON file and update the global cache."""
     global _reviews_cache
     _reviews_cache = reviews
-    reviews_file = get_reviews_file_path()
-    try:
-        reviews_file.parent.mkdir(parents=True, exist_ok=True)
-        with reviews_file.open("w", encoding="utf-8") as f:
-            json.dump(reviews, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        logging.exception(f"Error saving reviews file: {e}")
+    save_to_json_file(REVIEWS_FILENAME, reviews)
 
 
 class State(rx.State):
@@ -86,15 +102,27 @@ class State(rx.State):
 
     @rx.event
     def submit_contact_form(self, form_data: dict):
-        """Handles the contact form submission."""
-        contact_name = form_data.get("name", "")
-        contact_email = form_data.get("email", "")
-        contact_phone = form_data.get("phone", "")
-        contact_message = form_data.get("message", "")
-        print(
-            f"New contact form submission:\nName: {contact_name}\nEmail: {contact_email}\nPhone: {contact_phone}\nMessage: {contact_message}"
-        )
-        return rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
+        """Handles the contact form submission and saves it to a JSON file."""
+        new_submission: ContactSubmission = {
+            "name": form_data.get("name", ""),
+            "email": form_data.get("email", ""),
+            "phone": form_data.get("phone", ""),
+            "message": form_data.get("message", ""),
+        }
+        if not all(new_submission.values()):
+            return rx.toast.error(
+                "Por favor, completa todos los campos del formulario."
+            )
+        try:
+            contacts = load_from_json_file(CONTACTS_FILENAME, [])
+            contacts.append(new_submission)
+            save_to_json_file(CONTACTS_FILENAME, contacts)
+            return rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
+        except Exception as e:
+            logging.exception(f"Failed to save contact form submission: {e}")
+            return rx.toast.error(
+                "Hubo un error al enviar tu mensaje. Inténtalo de nuevo."
+            )
 
     @rx.event
     def submit_review(self):
