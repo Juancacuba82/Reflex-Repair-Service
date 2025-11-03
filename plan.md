@@ -9,12 +9,14 @@
 
 ---
 
-## Phase 2: Sistema de Calificaciones y Comentarios
-- [ ] Crear componente de calificación con estrellas (1-5)
-- [ ] Implementar formulario para dejar comentarios
-- [ ] Crear sistema de almacenamiento de reseñas en el estado
-- [ ] Diseñar galería de reseñas con calificaciones y comentarios
-- [ ] Agregar validación de formularios
+## Phase 2: Sistema de Calificaciones y Comentarios ✅
+- [x] Crear componente de calificación con estrellas (1-5)
+- [x] Implementar formulario para dejar comentarios
+- [x] Crear sistema de almacenamiento de reseñas persistente en el servidor (archivo JSON)
+- [x] Diseñar galería de reseñas con calificaciones y comentarios
+- [x] Agregar validación de formularios
+- [x] Implementar almacenamiento compartido entre todos los usuarios usando assets/reviews.json
+- [x] **CORREGIDO: Sistema de persistencia ahora usa assets/reviews.json para git**
 
 ---
 
@@ -28,3 +30,7 @@
 ---
 
 **Meta de sesión**: Completar las 3 fases con una aplicación totalmente funcional y profesional.
+
+**Progreso**: 2/3 fases completadas. 
+
+**✅ PROBLEMA RESUELTO**: Las reseñas ahora se almacenan en `assets/reviews.json` y persistirán en git y en la aplicación web desplegada.
