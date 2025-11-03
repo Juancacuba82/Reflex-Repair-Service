@@ -13,12 +13,12 @@ def header() -> rx.Component:
             rx.el.nav(
                 rx.el.a(
                     "Inicio",
-                    href="#",
+                    href="/",
                     class_name="text-gray-600 hover:text-orange-500 transition-colors",
                 ),
                 rx.el.a(
                     "Servicios",
-                    href="#servicios",
+                    href="/servicios",
                     class_name="text-gray-600 hover:text-orange-500 transition-colors",
                 ),
                 rx.el.a(
@@ -307,6 +307,9 @@ def reviews_section() -> rx.Component:
     )
 
 
+from app.pages.servicios import servicios
+
+
 def index() -> rx.Component:
     return rx.el.main(
         header(),
@@ -332,3 +335,4 @@ app = rx.App(
     ],
 )
 app.add_page(index, on_load=State.on_load)
+app.add_page(servicios, route="/servicios")
