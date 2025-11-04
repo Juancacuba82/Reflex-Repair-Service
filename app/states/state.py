@@ -38,16 +38,16 @@ DEFAULT_REVIEWS: list[Review] = [
 ]
 
 
-def get_assets_dir() -> Path:
-    """Get the path to the assets directory."""
-    assets_dir = Path("assets")
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    return assets_dir
+def get_upload_dir_path() -> Path:
+    """Get the path to the upload directory."""
+    upload_dir = rx.get_upload_dir()
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    return upload_dir
 
 
 def load_from_json_file(filename: str, default_data: list) -> list:
-    """Generic function to load data from a JSON file in the assets directory."""
-    file_path = get_assets_dir() / filename
+    """Generic function to load data from a JSON file in the upload directory."""
+    file_path = get_upload_dir_path() / filename
     if file_path.exists() and file_path.stat().st_size > 0:
         try:
             with file_path.open("r", encoding="utf-8") as f:
@@ -59,8 +59,8 @@ def load_from_json_file(filename: str, default_data: list) -> list:
 
 
 def save_to_json_file(filename: str, data: list):
-    """Generic function to save data to a JSON file in the assets directory."""
-    file_path = get_assets_dir() / filename
+    """Generic function to save data to a JSON file in the upload directory."""
+    file_path = get_upload_dir_path() / filename
     try:
         with file_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

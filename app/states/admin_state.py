@@ -16,16 +16,16 @@ class Review(TypedDict):
     client_token: str | None
 
 
-def get_assets_dir() -> Path:
-    """Get the path to the assets directory."""
-    assets_dir = Path("assets")
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    return assets_dir
+def get_upload_dir_path() -> Path:
+    """Get the path to the upload directory."""
+    upload_dir = rx.get_upload_dir()
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    return upload_dir
 
 
 def load_all_entries() -> list[Review]:
     """Load all entries (reviews and contacts) from the JSON file."""
-    file_path = get_assets_dir() / REVIEWS_FILENAME
+    file_path = get_upload_dir_path() / REVIEWS_FILENAME
     if file_path.exists() and file_path.stat().st_size > 0:
         try:
             with file_path.open("r", encoding="utf-8") as f:
@@ -37,7 +37,7 @@ def load_all_entries() -> list[Review]:
 
 def save_all_entries(entries: list[Review]):
     """Save all entries to the JSON file."""
-    file_path = get_assets_dir() / REVIEWS_FILENAME
+    file_path = get_upload_dir_path() / REVIEWS_FILENAME
     try:
         with file_path.open("w", encoding="utf-8") as f:
             json.dump(entries, f, ensure_ascii=False, indent=2)
