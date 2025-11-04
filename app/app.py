@@ -6,7 +6,7 @@ def header() -> rx.Component:
     return rx.el.header(
         rx.el.div(
             rx.el.div(
-                rx.icon("cog", class_name="h-8 w-8 text-orange-500"),
+                rx.icon("computer", class_name="h-8 w-8 text-orange-500"),
                 rx.el.span("Juanca PC", class_name="text-2xl font-bold text-gray-800"),
                 class_name="flex items-center gap-3",
             ),
