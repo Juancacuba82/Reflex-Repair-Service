@@ -174,10 +174,10 @@ class State(rx.State):
         try:
             engine = get_engine()
             with sqlmodel.Session(engine) as session:
+                review_name = self.new_review_email
                 existing_by_email = session.exec(
                     sqlmodel.select(Entry).where(
-                        sqlmodel.func.lower(Entry.name)
-                        == self.new_review_email.lower(),
+                        sqlmodel.func.lower(Entry.name) == review_name.lower(),
                         Entry.rating > 0,
                     )
                 ).first()
@@ -186,7 +186,7 @@ class State(rx.State):
                         "Ya existe una reseña con ese email. Por favor, utiliza otro."
                     )
                 new_review_entry = Entry(
-                    name=self.new_review_email,
+                    name=review_name,
                     rating=self.new_review_rating,
                     comment=self.new_review_comment,
                     client_token=self.router.session.client_token,
