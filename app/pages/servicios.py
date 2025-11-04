@@ -25,6 +25,6 @@ def servicios() -> rx.Component:
             ),
             class_name="bg-gray-50",
         ),
-        footer(),
+        rx.el.div(footer(), id="asistencia-remota"),
         class_name="font-['Poppins'] bg-white",
     )

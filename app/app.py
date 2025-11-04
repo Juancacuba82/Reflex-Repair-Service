@@ -72,32 +72,40 @@ def services_section() -> rx.Component:
                 class_name="text-3xl font-bold text-center text-gray-800 mb-12",
             ),
             rx.el.div(
-                rx.el.div(
-                    rx.icon(
-                        "monitor-smartphone",
-                        class_name="h-12 w-12 text-orange-500 mb-4",
+                rx.el.a(
+                    rx.el.div(
+                        rx.icon(
+                            "monitor-smartphone",
+                            class_name="h-12 w-12 text-orange-500 mb-4",
+                        ),
+                        rx.el.h3(
+                            "Reparación Local",
+                            class_name="text-xl font-semibold text-gray-800 mb-2",
+                        ),
+                        rx.el.p(
+                            "Visítanos para un diagnóstico y reparación experta de tu equipo.",
+                            class_name="text-gray-600 text-center",
+                        ),
+                        class_name="bg-white p-8 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full w-full",
                     ),
-                    rx.el.h3(
-                        "Reparación Local",
-                        class_name="text-xl font-semibold text-gray-800 mb-2",
-                    ),
-                    rx.el.p(
-                        "Visítanos para un diagnóstico y reparación experta de tu equipo.",
-                        class_name="text-gray-600 text-center",
-                    ),
-                    class_name="bg-white p-8 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col items-center",
+                    href="/servicios",
                 ),
-                rx.el.div(
-                    rx.icon("cloud-cog", class_name="h-12 w-12 text-orange-500 mb-4"),
-                    rx.el.h3(
-                        "Asistencia Online",
-                        class_name="text-xl font-semibold text-gray-800 mb-2",
+                rx.el.a(
+                    rx.el.div(
+                        rx.icon(
+                            "cloud-cog", class_name="h-12 w-12 text-orange-500 mb-4"
+                        ),
+                        rx.el.h3(
+                            "Asistencia Online",
+                            class_name="text-xl font-semibold text-gray-800 mb-2",
+                        ),
+                        rx.el.p(
+                            "Soporte remoto para problemas de software y configuraciones.",
+                            class_name="text-gray-600 text-center",
+                        ),
+                        class_name="bg-white p-8 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full w-full",
                     ),
-                    rx.el.p(
-                        "Soporte remoto para problemas de software y configuraciones.",
-                        class_name="text-gray-600 text-center",
-                    ),
-                    class_name="bg-white p-8 rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col items-center",
+                    href="/servicios#asistencia-remota",
                 ),
                 class_name="grid md:grid-cols-2 gap-8",
             ),
