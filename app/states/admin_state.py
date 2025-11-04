@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 REVIEWS_FILENAME = "reviews.json"
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Proevolution15425*")
 
 
 class Review(TypedDict):
