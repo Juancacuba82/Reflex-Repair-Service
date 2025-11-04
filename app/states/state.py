@@ -12,6 +12,7 @@ class Review(TypedDict):
     name: str
     rating: int
     comment: str
+    client_token: Optional[str]
 
 
 class ContactSubmission(TypedDict):
@@ -26,11 +27,13 @@ DEFAULT_REVIEWS: list[Review] = [
         "name": "Cliente Satisfecho",
         "rating": 5,
         "comment": "¡Excelente servicio! Mi computadora funciona como nueva. Rápido y profesional.",
+        "client_token": "default_token_1",
     },
     {
         "name": "Usuario Agradecido",
         "rating": 4,
         "comment": "Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
+        "client_token": "default_token_2",
     },
 ]
 
@@ -117,6 +120,7 @@ class State(rx.State):
             "name": f"[CONTACTO] {name}",
             "rating": 0,
             "comment": f"Email: {email}\nTeléfono: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
+            "client_token": self.router.session.client_token,
         }
         try:
             all_entries = load_all_entries_from_file()
@@ -139,12 +143,17 @@ class State(rx.State):
             or self.new_review_rating == 0
         ):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
+        current_entries = load_all_entries_from_file()
+        client_token = self.router.session.client_token
+        for entry in current_entries:
+            if entry.get("client_token") == client_token and entry.get("rating", 0) > 0:
+                return rx.toast.error("Ya has enviado una reseña.")
         new_review: Review = {
             "name": self.new_review_name,
             "rating": self.new_review_rating,
             "comment": self.new_review_comment,
+            "client_token": client_token,
         }
-        current_entries = load_all_entries_from_file()
         current_entries.append(new_review)
         save_entries_to_file(current_entries)
         self.new_review_name = ""

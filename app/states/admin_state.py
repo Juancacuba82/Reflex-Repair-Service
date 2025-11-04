@@ -13,6 +13,7 @@ class Review(TypedDict):
     name: str
     rating: int
     comment: str
+    client_token: str | None
 
 
 def get_assets_dir() -> Path:
@@ -97,8 +98,9 @@ class AdminState(rx.State):
             entry
             for entry in current_entries
             if not (
-                entry["name"] == entry_to_delete["name"]
-                and entry.get("comment") == entry_to_delete.get("comment")
+                entry.get("client_token") == entry_to_delete.get("client_token")
+                and entry["name"] == entry_to_delete["name"]
+                and (entry.get("comment") == entry_to_delete.get("comment"))
                 and (entry.get("rating") == entry_to_delete.get("rating"))
             )
         ]
