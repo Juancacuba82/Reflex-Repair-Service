@@ -75,7 +75,7 @@ def add_default_entries_if_empty():
 class State(rx.State):
     """The base state for the app."""
 
-    new_review_name: str = ""
+    new_review_email: str = ""
     new_review_comment: str = ""
     new_review_rating: int = 0
     hover_rating: int = 0
@@ -164,7 +164,7 @@ class State(rx.State):
     def submit_review(self):
         """Handles the review form submission and saves to the database."""
         if (
-            not self.new_review_name
+            not self.new_review_email
             or not self.new_review_comment
             or self.new_review_rating == 0
         ):
@@ -174,18 +174,19 @@ class State(rx.State):
         try:
             engine = get_engine()
             with sqlmodel.Session(engine) as session:
-                existing_by_name = session.exec(
+                existing_by_email = session.exec(
                     sqlmodel.select(Entry).where(
-                        sqlmodel.func.lower(Entry.name) == self.new_review_name.lower(),
+                        sqlmodel.func.lower(Entry.name)
+                        == self.new_review_email.lower(),
                         Entry.rating > 0,
                     )
                 ).first()
-                if existing_by_name:
+                if existing_by_email:
                     return rx.toast.error(
-                        "Ya existe una reseña con ese nombre. Por favor, elige otro."
+                        "Ya existe una reseña con ese email. Por favor, utiliza otro."
                     )
                 new_review_entry = Entry(
-                    name=self.new_review_name,
+                    name=self.new_review_email,
                     rating=self.new_review_rating,
                     comment=self.new_review_comment,
                     client_token=self.router.session.client_token,
@@ -195,7 +196,7 @@ class State(rx.State):
         except Exception as e:
             logging.exception(f"Failed to save review: {e}")
             return rx.toast.error("Hubo un error al guardar tu reseña.")
-        self.new_review_name = ""
+        self.new_review_email = ""
         self.new_review_comment = ""
         self.new_review_rating = 0
         self.hover_rating = 0

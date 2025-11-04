@@ -209,10 +209,11 @@ def review_form() -> rx.Component:
         rx.el.h3("Deja tu Reseña", class_name="text-2xl font-bold text-gray-800 mb-4"),
         rx.el.div(
             rx.el.input(
-                placeholder="Tu Nombre",
-                on_change=State.set_new_review_name,
+                placeholder="Tu Email",
+                type="email",
+                on_change=State.set_new_review_email,
                 class_name="w-full p-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition",
-                default_value=State.new_review_name,
+                default_value=State.new_review_email,
             ),
             rx.el.div(
                 rx.el.p("Calificación:", class_name="text-gray-600 font-medium mb-2"),
