@@ -36,7 +36,7 @@ class ServicesState(rx.State):
         {
             "icon": "laptop-cog",
             "title": "Optimización de Sistema Operativo",
-            "description": "Mejoramos la velocidad y rendimiento de tu Windows o macOS.",
+            "description": "Mejoramos la velocidad y rendimiento de tu sistema operativo Windows.",
             "details": [
                 "Limpieza de archivos basura y temporales",
                 "Optimización del arranque y apagado",
