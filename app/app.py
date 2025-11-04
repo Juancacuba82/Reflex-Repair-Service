@@ -333,5 +333,8 @@ app = rx.App(
 )
 app.add_page(index, on_load=State.on_load)
 from app.pages.servicios import servicios
+from app.pages.admin import admin
+from app.states.admin_state import AdminState
 
 app.add_page(servicios, route="/servicios")
+app.add_page(admin, route="/admin", on_load=AdminState.load_entries)
