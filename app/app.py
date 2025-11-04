@@ -7,7 +7,7 @@ def header() -> rx.Component:
         rx.el.div(
             rx.el.div(
                 rx.icon("cog", class_name="h-8 w-8 text-orange-500"),
-                rx.el.span("PC-FIX", class_name="text-2xl font-bold text-gray-800"),
+                rx.el.span("Juanca PC", class_name="text-2xl font-bold text-gray-800"),
                 class_name="flex items-center gap-3",
             ),
             rx.el.nav(
@@ -176,7 +176,7 @@ def footer() -> rx.Component:
     return rx.el.footer(
         rx.el.div(
             rx.el.p(
-                "© 2024 PC-FIX. Todos los derechos reservados.",
+                "© 2024 Juanca PC. Todos los derechos reservados.",
                 class_name="text-gray-500",
             ),
             rx.el.div(
