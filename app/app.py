@@ -296,7 +296,7 @@ def reviews_section() -> rx.Component:
 def whatsapp_button() -> rx.Component:
     return rx.el.a(
         rx.icon("message-circle", class_name="h-8 w-8 text-white"),
-        href="https://wa.me/5491122334455",
+        href="https://wa.me/5491126900632",
         is_external=True,
         class_name="bg-green-500 p-4 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-110 fixed bottom-6 right-6 z-50",
     )
