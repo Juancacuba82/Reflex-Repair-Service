@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import TypedDict, Optional
 import reflex as rx
+import datetime
 
 REVIEWS_FILENAME = "reviews.json"
 
@@ -32,7 +33,6 @@ DEFAULT_REVIEWS: list[Review] = [
         "comment": "Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
     },
 ]
-_reviews_cache: Optional[list[Review]] = None
 
 
 def get_assets_dir() -> Path:
@@ -65,23 +65,14 @@ def save_to_json_file(filename: str, data: list):
         logging.exception(f"Error saving {filename}: {e}")
 
 
-def load_reviews_from_file() -> list[Review]:
-    """Load reviews from the JSON file, using a global cache."""
-    global _reviews_cache
-    if _reviews_cache is not None:
-        return _reviews_cache
-    _reviews_cache = load_from_json_file(REVIEWS_FILENAME, DEFAULT_REVIEWS)
-    return _reviews_cache
+def load_all_entries_from_file() -> list[Review]:
+    """Load all entries from the JSON file."""
+    return load_from_json_file(REVIEWS_FILENAME, DEFAULT_REVIEWS)
 
 
-def save_reviews_to_file(reviews: list[Review]):
-    """Save reviews to the JSON file and update the global cache."""
-    global _reviews_cache
-    save_to_json_file(REVIEWS_FILENAME, reviews)
-    _reviews_cache = None
-
-
-import datetime
+def save_entries_to_file(entries: list[Review]):
+    """Save all entries to the JSON file."""
+    save_to_json_file(REVIEWS_FILENAME, entries)
 
 
 class State(rx.State):
@@ -91,6 +82,7 @@ class State(rx.State):
     new_review_comment: str = ""
     new_review_rating: int = 0
     hover_rating: int = 0
+    _reloader: int = 0
 
     @rx.var
     def current_year(self) -> int:
@@ -98,21 +90,20 @@ class State(rx.State):
 
     @rx.var
     def reviews(self) -> list[Review]:
-        """Computed var to get reviews from the shared source, filtering out contacts."""
-        all_entries = load_reviews_from_file()
+        """Computed var to get reviews directly from the file, ensuring it's always fresh."""
+        _ = self._reloader
+        all_entries = load_all_entries_from_file()
         return [entry for entry in all_entries if entry.get("rating", 0) > 0]
 
     @rx.event
     def on_load(self):
         """Event handler to ensure reviews are loaded on page load."""
-        load_reviews_from_file()
+        self._reloader += 1
 
     @rx.event
     def force_reload_reviews(self):
-        """Forces a reload of reviews from the source file."""
-        global _reviews_cache
-        _reviews_cache = None
-        load_reviews_from_file()
+        """Forces a reload of reviews by updating the dummy reloader var."""
+        self._reloader += 1
 
     @rx.event
     def submit_contact_form(self, form_data: dict):
@@ -128,15 +119,16 @@ class State(rx.State):
             "comment": f"Email: {email}\nTeléfono: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
         }
         try:
-            all_entries = load_reviews_from_file()
+            all_entries = load_all_entries_from_file()
             all_entries.append(contact_entry)
-            save_reviews_to_file(all_entries)
+            save_entries_to_file(all_entries)
         except Exception as e:
             logging.exception(f"Failed to save contact form submission: {e}")
             return rx.toast.error(
                 "Hubo un error al guardar tu mensaje. Inténtalo de nuevo."
             )
         yield rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
+        yield State.force_reload_reviews
 
     @rx.event
     def submit_review(self):
@@ -152,15 +144,15 @@ class State(rx.State):
             "rating": self.new_review_rating,
             "comment": self.new_review_comment,
         }
-        current_entries = load_reviews_from_file()
+        current_entries = load_all_entries_from_file()
         current_entries.append(new_review)
-        save_reviews_to_file(current_entries)
+        save_entries_to_file(current_entries)
         self.new_review_name = ""
         self.new_review_comment = ""
         self.new_review_rating = 0
         self.hover_rating = 0
         yield rx.toast.success("¡Gracias por tu reseña!")
-        yield State.on_load
+        yield State.force_reload_reviews
 
     @rx.event
     def set_hover_rating(self, rating: int):
