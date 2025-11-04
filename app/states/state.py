@@ -46,12 +46,12 @@ def get_assets_dir() -> Path:
 def load_from_json_file(filename: str, default_data: list) -> list:
     """Generic function to load data from a JSON file in the assets directory."""
     file_path = get_assets_dir() / filename
-    if file_path.exists():
+    if file_path.exists() and file_path.stat().st_size > 0:
         try:
             with file_path.open("r", encoding="utf-8") as f:
                 return json.load(f)
         except (IOError, json.JSONDecodeError) as e:
-            logging.exception(f"Error loading {filename}: {e}")
+            logging.exception(f"Error loading {filename}, recreating it: {e}")
     save_to_json_file(filename, default_data)
     return default_data.copy()
 
@@ -110,26 +110,29 @@ class State(rx.State):
     @rx.event
     def submit_contact_form(self, form_data: dict):
         """Handles the contact form submission and saves it to a JSON file."""
+        from app.states.email_state import EmailState
+
         new_submission: ContactSubmission = {
             "name": form_data.get("name", ""),
             "email": form_data.get("email", ""),
             "phone": form_data.get("phone", ""),
             "message": form_data.get("message", ""),
         }
-        if not all(new_submission.values()):
-            return rx.toast.error(
-                "Por favor, completa todos los campos del formulario."
-            )
+        if not all(
+            [new_submission["name"], new_submission["email"], new_submission["message"]]
+        ):
+            return rx.toast.error("Por favor, completa nombre, email y mensaje.")
         try:
             contacts = load_from_json_file(CONTACTS_FILENAME, [])
             contacts.append(new_submission)
             save_to_json_file(CONTACTS_FILENAME, contacts)
-            return rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
         except Exception as e:
             logging.exception(f"Failed to save contact form submission: {e}")
             return rx.toast.error(
-                "Hubo un error al enviar tu mensaje. Inténtalo de nuevo."
+                "Hubo un error al guardar tu mensaje. Inténtalo de nuevo."
             )
+        yield EmailState.send_contact_email(form_data)
+        yield rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
 
     @rx.event
     def submit_review(self):
