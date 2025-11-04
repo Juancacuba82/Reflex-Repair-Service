@@ -49,7 +49,7 @@
 
 ---
 
-## Phase 6: Migración a Base de Datos SQLite Persistente ✅
+## Phase 6: Migración a Base de Datos SQLite y Sistema de Backup ✅
 - [x] Crear modelo de base de datos con SQLModel (Entry table)
 - [x] Configurar SQLite database en rx.get_upload_dir() / "database.db"
 - [x] Implementar schema con campos: id, name, rating, comment, client_token
@@ -58,11 +58,14 @@
 - [x] Agregar función add_default_entries_if_empty() para inicializar DB
 - [x] Mantener funcionalidad completa: reviews, contacts, delete, filters
 - [x] Probar persistencia de datos con operaciones CRUD
-- [x] **Mejorar logging para debug de problemas de persistencia**
-- [x] **Agregar sistema de backup CSV descargable desde panel admin**
-- [x] **Implementar botón "Descargar Respaldo" con icono y estilo verde**
-- [x] **Implementar botón "Subir Respaldo" (restore) con icono azul y rx.upload**
-- [x] **Crear función handle_restore_upload() para procesar CSV y restaurar datos**
+- [x] Mejorar logging para debug de problemas de persistencia
+- [x] Agregar sistema de backup CSV descargable desde panel admin
+- [x] Implementar botón "Descargar Respaldo" con icono y estilo verde
+- [x] Implementar botón "Subir Respaldo" (restore) con icono azul y rx.upload
+- [x] Crear función handle_restore_upload() para procesar CSV y restaurar datos
+- [x] **Establecer client_token=None en reseñas restauradas desde CSV**
+- [x] **Implementar validación por nombre duplicado (case-insensitive) en submit_review()**
+- [x] **Prevenir que usuarios dejen múltiples reseñas con el mismo nombre después de restauración**
 
 ---
 
@@ -107,7 +110,42 @@ class Entry(sqlmodel.SQLModel, table=True):
 - `State.has_submitted_review` - Verifica si usuario ya dejó reseña
 - `AdminState.filtered_entries` - Filtra entre todos/reseñas/contactos
 - `AdminState.download_backup()` - Descarga CSV con todos los datos
-- `AdminState.handle_restore_upload()` - **NUEVO:** Restaura datos desde CSV backup
+- `AdminState.handle_restore_upload()` - Restaura datos desde CSV backup
+- **`State.submit_review()` - Valida duplicados por token Y por nombre (case-insensitive)**
+
+### Sistema de Validación Anti-Duplicados:
+✅ **SOLUCIÓN COMPLETA IMPLEMENTADA**
+
+**Problema Resuelto:** Después de restaurar desde CSV, los usuarios podían dejar otra reseña porque el sistema solo validaba por `client_token`, pero las reseñas restauradas tienen `client_token=None`.
+
+**Solución de Doble Validación:**
+
+1. **Validación por Token (Primera Línea de Defensa):**
+   - Verifica si existe reseña con el mismo `client_token`
+   - Mensaje: "Ya has enviado una reseña."
+   - Bloquea usuarios que ya dejaron reseña en la sesión actual
+
+2. **Validación por Nombre (Segunda Línea de Defensa - NEW!):**
+   ```python
+   existing_by_name = session.exec(
+       sqlmodel.select(Entry).where(
+           sqlmodel.func.lower(Entry.name) == self.new_review_name.lower(),
+           Entry.rating > 0,
+       )
+   ).first()
+   if existing_by_name:
+       return rx.toast.error("Ya existe una reseña con ese nombre.")
+   ```
+   - Busca reseñas con el mismo nombre (case-insensitive)
+   - Previene variaciones: "Juan Pérez" = "juan pérez" = "JUAN PÉREZ"
+   - Mensaje: "Ya existe una reseña con ese nombre."
+   - **Previene duplicados después de restauración desde CSV**
+
+**Comportamiento Esperado:**
+- ✅ Usuario intenta reseña con nombre existente → ❌ **Bloqueado**
+- ✅ Usuario con variación de capitalización → ❌ **Bloqueado**
+- ✅ Usuario con token duplicado → ❌ **Bloqueado**
+- ✅ Usuario con nombre nuevo → ✅ **Permitido**
 
 ### Sistema de Backup y Restauración:
 - **Formato:** CSV con todos los campos (id, name, rating, comment, client_token)
@@ -117,10 +155,12 @@ class Entry(sqlmodel.SQLModel, table=True):
   1. Usuario hace clic en "Subir Respaldo"
   2. Selecciona archivo CSV previamente descargado
   3. Sistema lee y valida el CSV
-  4. Borra todos los datos existentes en la DB
-  5. Inserta todas las entradas del CSV
-  6. Recarga la vista del admin automáticamente
-  7. Muestra toast con número de entradas restauradas
+  4. **Establece `client_token=None` para todas las reseñas restauradas**
+  5. Borra todos los datos existentes en la DB
+  6. Inserta todas las entradas del CSV
+  7. Recarga la vista del admin automáticamente
+  8. Muestra toast con número de entradas restauradas
+  9. **La validación por nombre previene que usuarios con nombres existentes dejen nuevas reseñas**
 
 ### Cómo Restaurar Manualmente con CSV:
 1. **Accede al panel de administración:** Ve a `/admin` e inicia sesión
@@ -130,9 +170,10 @@ class Entry(sqlmodel.SQLModel, table=True):
    - Lee el archivo CSV
    - Valida el formato
    - Borra todos los datos actuales
-   - Inserta los datos del backup
+   - Inserta los datos del backup (con token=None)
    - Recarga la vista
    - Muestra mensaje de éxito con el número de registros restaurados
+   - **Las validaciones por nombre previenen duplicados futuros**
 
 ### Debug de Persistencia:
 - Logging agregado en `get_engine()` para verificar conexión a DB
@@ -146,3 +187,4 @@ class Entry(sqlmodel.SQLModel, table=True):
 3. **Verificar logs:** Revisar logs de Reflex Hosting para errores de DB
 4. **Reinicialización:** Si DB se pierde, se recreará automáticamente con datos de ejemplo
 5. **Restauración:** Usar el botón "Subir Respaldo" para restaurar desde CSV backup
+6. **Post-restauración:** El sistema de doble validación previene todos los duplicados

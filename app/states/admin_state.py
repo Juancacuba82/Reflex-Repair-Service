@@ -110,7 +110,7 @@ class AdminState(rx.State):
                         name=row["name"],
                         rating=int(row["rating"]),
                         comment=row["comment"],
-                        client_token=row.get("client_token"),
+                        client_token=row.get("client_token") or None,
                     )
                     new_entries.append(entry)
                 except (KeyError, ValueError) as e:

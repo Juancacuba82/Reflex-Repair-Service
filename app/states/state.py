@@ -171,15 +171,23 @@ class State(rx.State):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
         if self.has_submitted_review:
             return rx.toast.error("Ya has enviado una reseña.")
-        new_review_entry = Entry(
-            name=self.new_review_name,
-            rating=self.new_review_rating,
-            comment=self.new_review_comment,
-            client_token=self.router.session.client_token,
-        )
         try:
             engine = get_engine()
             with sqlmodel.Session(engine) as session:
+                existing_by_name = session.exec(
+                    sqlmodel.select(Entry).where(
+                        sqlmodel.func.lower(Entry.name) == self.new_review_name.lower(),
+                        Entry.rating > 0,
+                    )
+                ).first()
+                if existing_by_name:
+                    return rx.toast.error("Ya existe una reseña con ese nombre.")
+                new_review_entry = Entry(
+                    name=self.new_review_name,
+                    rating=self.new_review_rating,
+                    comment=self.new_review_comment,
+                    client_token=self.router.session.client_token,
+                )
                 session.add(new_review_entry)
                 session.commit()
         except Exception as e:
