@@ -68,9 +68,16 @@ class AdminState(rx.State):
         self.is_logged_in = False
         self.all_entries = []
         self.error_message = ""
+        self.password = ""
+        return [rx.clear_local_storage(), rx.redirect("/")]
 
     @rx.event
     def load_entries(self):
+        if not self.is_logged_in:
+            self.all_entries = []
+            self.error_message = ""
+            self.password = ""
+            return
         self.all_entries = load_all_entries()
 
     @rx.var
