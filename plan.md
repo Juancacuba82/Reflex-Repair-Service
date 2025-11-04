@@ -58,6 +58,9 @@
 - [x] Agregar función add_default_entries_if_empty() para inicializar DB
 - [x] Mantener funcionalidad completa: reviews, contacts, delete, filters
 - [x] Probar persistencia de datos con operaciones CRUD
+- [x] **Mejorar logging para debug de problemas de persistencia**
+- [x] **Agregar sistema de backup CSV descargable desde panel admin**
+- [x] **Implementar botón "Descargar Respaldo" con icono y estilo verde**
 
 ---
 
@@ -101,3 +104,23 @@ class Entry(sqlmodel.SQLModel, table=True):
 - `State.reviews` - Computed var que query reseñas (rating > 0)
 - `State.has_submitted_review` - Verifica si usuario ya dejó reseña
 - `AdminState.filtered_entries` - Filtra entre todos/reseñas/contactos
+- `AdminState.download_backup()` - Descarga CSV con todos los datos
+
+### Sistema de Backup:
+- **Formato:** CSV con todos los campos
+- **Acceso:** Panel de administración (botón verde "Descargar Respaldo")
+- **Contenido:** id, name, rating, comment, client_token
+- **Propósito:** Respaldo manual antes de deploys importantes
+
+### Debug de Persistencia:
+- Logging agregado en `get_engine()` para verificar conexión a DB
+- Logging en `add_default_entries_if_empty()` para confirmar inicialización
+- Logging en `State.on_load()` para debug de carga de datos
+- Verificación explícita de existencia de DB en cada conexión
+
+### Solución a Problemas de Deploy:
+1. **Verificar upload_dir:** La DB debe estar en `uploaded_files/database.db`
+2. **Descargar backup:** Antes de cada deploy, descargar CSV desde panel admin
+3. **Verificar logs:** Revisar logs de Reflex Hosting para errores de DB
+4. **Reinicialización:** Si DB se pierde, se recreará automáticamente con datos de ejemplo
+5. **Restauración:** Usar el CSV de backup para restaurar datos manualmente si es necesario

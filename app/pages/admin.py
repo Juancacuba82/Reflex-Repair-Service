@@ -55,10 +55,19 @@ def admin_dashboard() -> rx.Component:
                     "Panel de Administración",
                     class_name="text-2xl font-bold text-gray-800",
                 ),
-                rx.el.button(
-                    "Cerrar Sesión",
-                    on_click=AdminState.logout,
-                    class_name="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors",
+                rx.el.div(
+                    rx.el.button(
+                        rx.icon("cloud_download", class_name="mr-2"),
+                        "Descargar Respaldo",
+                        on_click=AdminState.download_backup,
+                        class_name="bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center",
+                    ),
+                    rx.el.button(
+                        "Cerrar Sesión",
+                        on_click=AdminState.logout,
+                        class_name="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition-colors",
+                    ),
+                    class_name="flex gap-4",
                 ),
                 class_name="container mx-auto flex items-center justify-between p-4",
             ),

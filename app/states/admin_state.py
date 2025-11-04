@@ -4,6 +4,8 @@ from typing import TypedDict
 import logging
 import sqlmodel
 from app.states.state import Entry, get_engine
+import csv
+import io
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Proevolution15425*")
 
@@ -85,3 +87,24 @@ class AdminState(rx.State):
 
         yield State.force_reload_reviews
         yield rx.toast.success("Entrada eliminada correctamente.")
+
+    @rx.event
+    def download_backup(self):
+        """Downloads all entries as a CSV file."""
+        if not self.is_logged_in:
+            return rx.toast.error("Acceso denegado.")
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["id", "name", "rating", "comment", "client_token"])
+        for entry in self.all_entries:
+            writer.writerow(
+                [
+                    entry.get("id"),
+                    entry.get("name"),
+                    entry.get("rating"),
+                    entry.get("comment"),
+                    entry.get("client_token"),
+                ]
+            )
+        csv_data = output.getvalue()
+        return rx.download(data=csv_data, filename="juanca_pc_backup.csv")

@@ -15,38 +15,61 @@ class Entry(sqlmodel.SQLModel, table=True):
 
 
 def get_db_path() -> Path:
-    return rx.get_upload_dir() / "database.db"
+    db_path = rx.get_upload_dir() / "database.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return db_path
 
 
 def get_engine():
-    db_path = get_db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = sqlmodel.create_engine(f"sqlite:///{db_path}")
+    db_url = f"sqlite:///{get_db_path()}"
+    logging.info(f"Connecting to database at: {db_url}")
+    engine = sqlmodel.create_engine(db_url)
     sqlmodel.SQLModel.metadata.create_all(engine)
+    logging.info("Database tables checked/created.")
     return engine
 
 
+_db_initialized = False
+
+
 def add_default_entries_if_empty():
-    engine = get_engine()
-    with sqlmodel.Session(engine) as session:
-        if not session.exec(sqlmodel.select(Entry)).first():
-            default_entries = [
-                Entry(
-                    name="Cliente Satisfecho",
-                    rating=5,
-                    comment="¡Excelente servicio! Mi computadora funciona como nueva. Rápido y profesional.",
-                    client_token="default_token_1",
-                ),
-                Entry(
-                    name="Usuario Agradecido",
-                    rating=4,
-                    comment="Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
-                    client_token="default_token_2",
-                ),
-            ]
-            for entry in default_entries:
-                session.add(entry)
-            session.commit()
+    global _db_initialized
+    if _db_initialized:
+        logging.info("DB already initialized in this session. Skipping.")
+        return
+    try:
+        logging.info("Checking if default entries are needed.")
+        engine = get_engine()
+        with sqlmodel.Session(engine) as session:
+            count = session.exec(sqlmodel.select(sqlmodel.func.count(Entry.id))).one()
+            if count == 0:
+                logging.info("No entries found. Adding default entries.")
+                default_entries = [
+                    Entry(
+                        name="Cliente Satisfecho",
+                        rating=5,
+                        comment="¡Excelente servicio! Mi computadora funciona como nueva. Rápido y profesional.",
+                        client_token="default_token_1",
+                    ),
+                    Entry(
+                        name="Usuario Agradecido",
+                        rating=4,
+                        comment="Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
+                        client_token="default_token_2",
+                    ),
+                ]
+                for entry in default_entries:
+                    session.add(entry)
+                session.commit()
+                logging.info("Default entries added successfully.")
+            else:
+                logging.info(
+                    f"Database already contains {count} entries. No action needed."
+                )
+    except Exception as e:
+        logging.exception(f"Error during DB initialization: {e}")
+    finally:
+        _db_initialized = True
 
 
 class State(rx.State):
@@ -101,6 +124,7 @@ class State(rx.State):
     @rx.event
     def on_load(self):
         """Event handler to ensure reviews are loaded on page load."""
+        logging.info("Page loaded. Running DB checks and reloading state.")
         add_default_entries_if_empty()
         self._reloader += 1
 
