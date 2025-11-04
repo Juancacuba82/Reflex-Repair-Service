@@ -1,48 +1,18 @@
 import reflex as rx
 import os
 from typing import TypedDict
-import json
 import logging
-from pathlib import Path
+import sqlmodel
+from app.states.state import Entry, get_engine
 
-REVIEWS_FILENAME = "reviews.json"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Proevolution15425*")
-
-
-class Review(TypedDict):
-    name: str
-    rating: int
-    comment: str
-    client_token: str | None
-
-
-def load_all_entries() -> list[Review]:
-    """Load all entries (reviews and contacts) from the JSON file."""
-    file_path = get_upload_dir_path() / REVIEWS_FILENAME
-    if file_path.exists() and file_path.stat().st_size > 0:
-        try:
-            with file_path.open("r", encoding="utf-8") as f:
-                return json.load(f)
-        except (IOError, json.JSONDecodeError) as e:
-            logging.exception(f"Error loading {REVIEWS_FILENAME}: {e}")
-    return []
-
-
-def save_all_entries(entries: list[Review]):
-    """Save all entries to the JSON file."""
-    file_path = get_upload_dir_path() / REVIEWS_FILENAME
-    try:
-        with file_path.open("w", encoding="utf-8") as f:
-            json.dump(entries, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        logging.exception(f"Error saving {REVIEWS_FILENAME}: {e}")
 
 
 class AdminState(rx.State):
     is_logged_in: bool = False
     password: str = ""
     error_message: str = ""
-    all_entries: list[Review] = []
+    all_entries: list[dict] = []
     filter_mode: str = "all"
 
     @rx.event
@@ -70,10 +40,17 @@ class AdminState(rx.State):
         if not self.is_logged_in:
             self.all_entries = []
             return
-        self.all_entries = load_all_entries()
+        try:
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                entries = session.exec(sqlmodel.select(Entry)).all()
+                self.all_entries = [entry.model_dump() for entry in entries]
+        except Exception as e:
+            logging.exception(f"Failed to load entries for admin: {e}")
+            self.all_entries = []
 
     @rx.var
-    def filtered_entries(self) -> list[Review]:
+    def filtered_entries(self) -> list[dict]:
         if self.filter_mode == "reviews":
             return [e for e in self.all_entries if e.get("rating", 0) > 0]
         elif self.filter_mode == "contacts":
@@ -85,19 +62,24 @@ class AdminState(rx.State):
         self.filter_mode = mode
 
     @rx.event
-    def delete_entry(self, entry_to_delete: Review):
-        current_entries = load_all_entries()
-        updated_entries = [
-            entry
-            for entry in current_entries
-            if not (
-                entry.get("client_token") == entry_to_delete.get("client_token")
-                and entry["name"] == entry_to_delete["name"]
-                and (entry.get("comment") == entry_to_delete.get("comment"))
-                and (entry.get("rating") == entry_to_delete.get("rating"))
-            )
-        ]
-        save_all_entries(updated_entries)
+    def delete_entry(self, entry_to_delete: dict):
+        entry_id = entry_to_delete.get("id")
+        if not entry_id:
+            return rx.toast.error("No se pudo eliminar la entrada: ID no encontrado.")
+        try:
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                db_entry = session.get(Entry, entry_id)
+                if db_entry:
+                    session.delete(db_entry)
+                    session.commit()
+                else:
+                    return rx.toast.error(
+                        "La entrada no fue encontrada en la base de datos."
+                    )
+        except Exception as e:
+            logging.exception(f"Failed to delete entry {entry_id}: {e}")
+            return rx.toast.error("Ocurrió un error al eliminar la entrada.")
         yield AdminState.load_entries
         from app.states.state import State
 

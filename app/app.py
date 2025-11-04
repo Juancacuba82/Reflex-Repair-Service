@@ -250,7 +250,7 @@ def review_card(review: rx.Var[dict]) -> rx.Component:
             rx.el.p(review["name"], class_name="font-semibold text-gray-800"),
             rx.el.div(
                 rx.foreach(
-                    rx.Var.range(review["rating"]),
+                    rx.Var.range(review["rating"].to(int)),
                     lambda i: rx.icon(
                         "star", class_name="h-5 w-5 text-yellow-400 fill-yellow-400"
                     ),

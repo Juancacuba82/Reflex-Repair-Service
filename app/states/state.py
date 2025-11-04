@@ -1,81 +1,52 @@
-import json
 import logging
-from pathlib import Path
 from typing import TypedDict, Optional
 import reflex as rx
 import datetime
+import sqlmodel
+from pathlib import Path
 
-REVIEWS_FILENAME = "reviews.json"
 
-
-class Review(TypedDict):
+class Entry(sqlmodel.SQLModel, table=True):
+    id: Optional[int] = sqlmodel.Field(default=None, primary_key=True)
     name: str
     rating: int
     comment: str
-    client_token: Optional[str]
+    client_token: Optional[str] = sqlmodel.Field(index=True)
 
 
-class ContactSubmission(TypedDict):
-    name: str
-    email: str
-    phone: str
-    message: str
+def get_db_path() -> Path:
+    return rx.get_upload_dir() / "database.db"
 
 
-DEFAULT_REVIEWS: list[Review] = [
-    {
-        "name": "Cliente Satisfecho",
-        "rating": 5,
-        "comment": "¡Excelente servicio! Mi computadora funciona como nueva. Rápido y profesional.",
-        "client_token": "default_token_1",
-    },
-    {
-        "name": "Usuario Agradecido",
-        "rating": 4,
-        "comment": "Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
-        "client_token": "default_token_2",
-    },
-]
+def get_engine():
+    db_path = get_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    engine = sqlmodel.create_engine(f"sqlite:///{db_path}")
+    sqlmodel.SQLModel.metadata.create_all(engine)
+    return engine
 
 
-def get_upload_dir_path() -> Path:
-    """Get the path to the upload directory."""
-    upload_dir = rx.get_upload_dir()
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    return upload_dir
-
-
-def load_from_json_file(filename: str, default_data: list) -> list:
-    """Generic function to load data from a JSON file in the upload directory."""
-    file_path = get_upload_dir_path() / filename
-    if file_path.exists() and file_path.stat().st_size > 0:
-        try:
-            with file_path.open("r", encoding="utf-8") as f:
-                return json.load(f)
-        except (IOError, json.JSONDecodeError) as e:
-            logging.exception(f"Error loading {filename}, recreating it: {e}")
-    save_to_json_file(filename, default_data)
-    return default_data.copy()
-
-
-def save_to_json_file(filename: str, data: list):
-    """Generic function to save data to a JSON file in the upload directory."""
-    file_path = get_upload_dir_path() / filename
-    try:
-        with file_path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        logging.exception(f"Error saving {filename}: {e}")
-
-
-def load_all_entries_from_file() -> list[Review]:
-    """Load all entries from the JSON file, ensuring it's created if it doesn't exist."""
-    return load_from_json_file(REVIEWS_FILENAME, DEFAULT_REVIEWS)
-
-
-def save_entries_to_file(entries: list[Review]):
-    """Save all entries to the JSON file."""
-    save_to_json_file(REVIEWS_FILENAME, entries)
+def add_default_entries_if_empty():
+    engine = get_engine()
+    with sqlmodel.Session(engine) as session:
+        if not session.exec(sqlmodel.select(Entry)).first():
+            default_entries = [
+                Entry(
+                    name="Cliente Satisfecho",
+                    rating=5,
+                    comment="¡Excelente servicio! Mi computadora funciona como nueva. Rápido y profesional.",
+                    client_token="default_token_1",
+                ),
+                Entry(
+                    name="Usuario Agradecido",
+                    rating=4,
+                    comment="Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo.",
+                    client_token="default_token_2",
+                ),
+            ]
+            for entry in default_entries:
+                session.add(entry)
+            session.commit()
 
 
 class State(rx.State):
@@ -87,16 +58,27 @@ class State(rx.State):
     hover_rating: int = 0
     _reloader: int = 0
 
+    def _get_all_entries(self) -> list[Entry]:
+        try:
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                return session.exec(sqlmodel.select(Entry)).all()
+        except Exception as e:
+            logging.exception(f"Error fetching entries from DB: {e}")
+            return []
+
     @rx.var
     def current_year(self) -> int:
         return datetime.date.today().year
 
     @rx.var
-    def reviews(self) -> list[Review]:
-        """Computed var to get reviews directly from the file, ensuring it's always fresh."""
+    def reviews(self) -> list[dict]:
+        """Computed var to get reviews directly from the database."""
         _ = self._reloader
-        all_entries = load_all_entries_from_file()
-        return [entry for entry in all_entries if entry.get("rating", 0) > 0]
+        add_default_entries_if_empty()
+        all_entries = self._get_all_entries()
+        reviews_list = [entry.model_dump() for entry in all_entries if entry.rating > 0]
+        return reviews_list
 
     @rx.var
     def has_submitted_review(self) -> bool:
@@ -105,15 +87,21 @@ class State(rx.State):
         client_token = self.router.session.client_token
         if not client_token:
             return False
-        all_entries = load_all_entries_from_file()
-        for entry in all_entries:
-            if entry.get("client_token") == client_token and entry.get("rating", 0) > 0:
-                return True
-        return False
+        try:
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                statement = sqlmodel.select(Entry).where(
+                    Entry.client_token == client_token, Entry.rating > 0
+                )
+                return session.exec(statement).first() is not None
+        except Exception as e:
+            logging.exception(f"Error checking for submitted review: {e}")
+            return False
 
     @rx.event
     def on_load(self):
         """Event handler to ensure reviews are loaded on page load."""
+        add_default_entries_if_empty()
         self._reloader += 1
 
     @rx.event
@@ -123,22 +111,23 @@ class State(rx.State):
 
     @rx.event
     def submit_contact_form(self, form_data: dict):
-        """Handles the contact form submission and saves it to reviews.json."""
+        """Handles the contact form submission and saves it to the database."""
         name = form_data.get("name", "")
         email = form_data.get("email", "")
         message = form_data.get("message", "")
         if not all([name, email, message]):
             return rx.toast.error("Por favor, completa nombre, email y mensaje.")
-        contact_entry: Review = {
-            "name": f"[CONTACTO] {name}",
-            "rating": 0,
-            "comment": f"Email: {email}\nCelular: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
-            "client_token": self.router.session.client_token,
-        }
+        contact_entry = Entry(
+            name=f"[CONTACTO] {name}",
+            rating=0,
+            comment=f"Email: {email}\nCelular: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
+            client_token=self.router.session.client_token,
+        )
         try:
-            all_entries = load_all_entries_from_file()
-            all_entries.append(contact_entry)
-            save_entries_to_file(all_entries)
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                session.add(contact_entry)
+                session.commit()
         except Exception as e:
             logging.exception(f"Failed to save contact form submission: {e}")
             return rx.toast.error(
@@ -149,26 +138,29 @@ class State(rx.State):
 
     @rx.event
     def submit_review(self):
-        """Handles the review form submission and saves to a shared JSON file."""
+        """Handles the review form submission and saves to the database."""
         if (
             not self.new_review_name
             or not self.new_review_comment
             or self.new_review_rating == 0
         ):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
-        current_entries = load_all_entries_from_file()
-        client_token = self.router.session.client_token
-        for entry in current_entries:
-            if entry.get("client_token") == client_token and entry.get("rating", 0) > 0:
-                return rx.toast.error("Ya has enviado una reseña.")
-        new_review: Review = {
-            "name": self.new_review_name,
-            "rating": self.new_review_rating,
-            "comment": self.new_review_comment,
-            "client_token": client_token,
-        }
-        current_entries.append(new_review)
-        save_entries_to_file(current_entries)
+        if self.has_submitted_review:
+            return rx.toast.error("Ya has enviado una reseña.")
+        new_review_entry = Entry(
+            name=self.new_review_name,
+            rating=self.new_review_rating,
+            comment=self.new_review_comment,
+            client_token=self.router.session.client_token,
+        )
+        try:
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                session.add(new_review_entry)
+                session.commit()
+        except Exception as e:
+            logging.exception(f"Failed to save review: {e}")
+            return rx.toast.error("Hubo un error al guardar tu reseña.")
         self.new_review_name = ""
         self.new_review_comment = ""
         self.new_review_rating = 0

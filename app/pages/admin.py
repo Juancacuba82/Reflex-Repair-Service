@@ -76,30 +76,27 @@ def admin_dashboard() -> rx.Component:
                         on_click=lambda: AdminState.set_filter_mode("all"),
                         class_name=rx.cond(
                             AdminState.filter_mode == "all",
-                            "bg-orange-500 text-white",
-                            "bg-gray-200 text-gray-700",
-                        )
-                        + " px-4 py-2 rounded-lg font-semibold",
+                            "bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold",
+                            "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold",
+                        ),
                     ),
                     rx.el.button(
                         "Reseñas",
                         on_click=lambda: AdminState.set_filter_mode("reviews"),
                         class_name=rx.cond(
                             AdminState.filter_mode == "reviews",
-                            "bg-orange-500 text-white",
-                            "bg-gray-200 text-gray-700",
-                        )
-                        + " px-4 py-2 rounded-lg font-semibold",
+                            "bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold",
+                            "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold",
+                        ),
                     ),
                     rx.el.button(
                         "Contactos",
                         on_click=lambda: AdminState.set_filter_mode("contacts"),
                         class_name=rx.cond(
                             AdminState.filter_mode == "contacts",
-                            "bg-orange-500 text-white",
-                            "bg-gray-200 text-gray-700",
-                        )
-                        + " px-4 py-2 rounded-lg font-semibold",
+                            "bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold",
+                            "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold",
+                        ),
                     ),
                     class_name="flex gap-4 mb-8",
                 ),
@@ -121,7 +118,7 @@ def entry_card(entry: rx.Var[dict]) -> rx.Component:
             rx.el.div(
                 rx.el.h3(entry["name"], class_name="font-bold text-lg truncate"),
                 rx.cond(
-                    entry["rating"] > 0,
+                    entry["rating"].to(int) > 0,
                     rx.el.div(
                         rx.el.span(
                             entry["rating"].to_string() + "/5",

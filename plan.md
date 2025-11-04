@@ -49,7 +49,19 @@
 
 ---
 
-## Phase 6: Funcionalidades Avanzadas del Panel Admin 
+## Phase 6: Migración a Base de Datos SQLite Persistente ✅
+- [x] Crear modelo de base de datos con SQLModel (Entry table)
+- [x] Configurar SQLite database en rx.get_upload_dir() / "database.db"
+- [x] Implementar schema con campos: id, name, rating, comment, client_token
+- [x] Migrar toda la lógica de State de JSON a queries SQL
+- [x] Migrar AdminState para usar SQLite con filtros SQL
+- [x] Agregar función add_default_entries_if_empty() para inicializar DB
+- [x] Mantener funcionalidad completa: reviews, contacts, delete, filters
+- [x] Probar persistencia de datos con operaciones CRUD
+
+---
+
+## Phase 7: Funcionalidades Avanzadas del Panel Admin 
 - [ ] Agregar funcionalidad para editar reseñas existentes
 - [ ] Implementar estadísticas del panel (total de reseñas, promedio de calificación)
 - [ ] Crear sistema de respuesta a contactos desde el panel
@@ -57,8 +69,35 @@
 
 ---
 
-## Phase 7: Seguridad y UX del Panel Admin 
+## Phase 8: Seguridad y UX del Panel Admin 
 - [ ] Implementar protección contra fuerza bruta en login
-- [ ] Agregar sistema de logout y gestión de sesiones
+- [ ] Agregar sistema de logout y gestión de sesiones mejorado
 - [ ] Crear diseño responsive del panel para móviles
 - [ ] Implementar confirmaciones visuales para acciones destructivas
+
+---
+
+## Notas Técnicas
+
+### Sistema de Base de Datos Actual:
+- **Tipo:** SQLite con SQLModel/SQLAlchemy
+- **Ubicación:** `rx.get_upload_dir() / "database.db"`
+- **Persistencia:** ✅ Garantizada en Reflex hosting (upload_dir persiste entre deploys)
+- **Ventajas:** Transacciones ACID, queries SQL, mejor rendimiento, sin race conditions
+
+### Modelo de Datos:
+```python
+class Entry(sqlmodel.SQLModel, table=True):
+    id: Optional[int] (primary key)
+    name: str
+    rating: int (0 para contactos, 1-5 para reseñas)
+    comment: str
+    client_token: Optional[str] (para verificar si usuario ya dejó reseña)
+```
+
+### Funciones Principales:
+- `get_engine()` - Crea/conecta a la base de datos SQLite
+- `add_default_entries_if_empty()` - Inicializa DB con 2 reseñas de ejemplo
+- `State.reviews` - Computed var que query reseñas (rating > 0)
+- `State.has_submitted_review` - Verifica si usuario ya dejó reseña
+- `AdminState.filtered_entries` - Filtra entre todos/reseñas/contactos
