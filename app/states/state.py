@@ -169,6 +169,11 @@ class State(rx.State):
             or self.new_review_rating == 0
         ):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
+        if (
+            "@" not in self.new_review_email
+            or "." not in self.new_review_email.split("@")[-1]
+        ):
+            return rx.toast.error("Por favor, ingresa una dirección de email válida.")
         if self.has_submitted_review:
             return rx.toast.error("Ya has enviado una reseña con este dispositivo.")
         try:
