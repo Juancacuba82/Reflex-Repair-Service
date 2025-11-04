@@ -106,11 +106,16 @@ class AdminState(rx.State):
             new_entries = []
             for row in reader:
                 try:
+                    client_token = row.get("client_token")
                     entry = Entry(
                         name=row["name"],
-                        rating=int(row["rating"]),
-                        comment=row["comment"],
-                        client_token=row.get("client_token") or None,
+                        rating=int(row.get("rating", 0)),
+                        comment=row.get("comment", ""),
+                        client_token=client_token
+                        if client_token
+                        and client_token.strip()
+                        and (client_token.lower() != "none")
+                        else None,
                     )
                     new_entries.append(entry)
                 except (KeyError, ValueError) as e:
@@ -126,6 +131,7 @@ class AdminState(rx.State):
             engine = get_engine()
             with sqlmodel.Session(engine) as session:
                 session.exec(sqlmodel.delete(Entry))
+                session.commit()
                 for entry in new_entries:
                     session.add(entry)
                 session.commit()
@@ -146,17 +152,10 @@ class AdminState(rx.State):
         if not self.is_logged_in:
             return rx.toast.error("Acceso denegado.")
         output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["id", "name", "rating", "comment", "client_token"])
+        fieldnames = ["id", "name", "rating", "comment", "client_token"]
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
         for entry in self.all_entries:
-            writer.writerow(
-                [
-                    entry.get("id"),
-                    entry.get("name"),
-                    entry.get("rating"),
-                    entry.get("comment"),
-                    entry.get("client_token"),
-                ]
-            )
+            writer.writerow({k: entry.get(k) for k in fieldnames})
         csv_data = output.getvalue()
         return rx.download(data=csv_data, filename="juanca_pc_backup.csv")

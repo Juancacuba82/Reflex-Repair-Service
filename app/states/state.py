@@ -170,7 +170,7 @@ class State(rx.State):
         ):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
         if self.has_submitted_review:
-            return rx.toast.error("Ya has enviado una reseña.")
+            return rx.toast.error("Ya has enviado una reseña con este dispositivo.")
         try:
             engine = get_engine()
             with sqlmodel.Session(engine) as session:
@@ -181,7 +181,9 @@ class State(rx.State):
                     )
                 ).first()
                 if existing_by_name:
-                    return rx.toast.error("Ya existe una reseña con ese nombre.")
+                    return rx.toast.error(
+                        "Ya existe una reseña con ese nombre. Por favor, elige otro."
+                    )
                 new_review_entry = Entry(
                     name=self.new_review_name,
                     rating=self.new_review_rating,

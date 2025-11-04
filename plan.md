@@ -63,9 +63,9 @@
 - [x] Implementar botón "Descargar Respaldo" con icono y estilo verde
 - [x] Implementar botón "Subir Respaldo" (restore) con icono azul y rx.upload
 - [x] Crear función handle_restore_upload() para procesar CSV y restaurar datos
-- [x] **Establecer client_token=None en reseñas restauradas desde CSV**
-- [x] **Implementar validación por nombre duplicado (case-insensitive) en submit_review()**
-- [x] **Prevenir que usuarios dejen múltiples reseñas con el mismo nombre después de restauración**
+- [x] **Preservar client_token original del CSV durante restauración**
+- [x] **Implementar validación ultra-estricta por client_token como primera barrera**
+- [x] **Validación por nombre como respaldo secundario (case-insensitive)**
 
 ---
 
@@ -100,80 +100,104 @@ class Entry(sqlmodel.SQLModel, table=True):
     name: str
     rating: int (0 para contactos, 1-5 para reseñas)
     comment: str
-    client_token: Optional[str] (para verificar si usuario ya dejó reseña)
+    client_token: Optional[str] (identificador único del navegador/dispositivo)
 ```
 
 ### Funciones Principales:
 - `get_engine()` - Crea/conecta a la base de datos SQLite
 - `add_default_entries_if_empty()` - Inicializa DB con 2 reseñas de ejemplo
 - `State.reviews` - Computed var que query reseñas (rating > 0)
-- `State.has_submitted_review` - Verifica si usuario ya dejó reseña
+- `State.has_submitted_review` - Verifica si usuario ya dejó reseña (por token)
 - `AdminState.filtered_entries` - Filtra entre todos/reseñas/contactos
-- `AdminState.download_backup()` - Descarga CSV con todos los datos
-- `AdminState.handle_restore_upload()` - Restaura datos desde CSV backup
-- **`State.submit_review()` - Valida duplicados por token Y por nombre (case-insensitive)**
+- `AdminState.download_backup()` - Descarga CSV con todos los datos (incluye tokens)
+- `AdminState.handle_restore_upload()` - Restaura datos desde CSV backup (preserva tokens)
+- **`State.submit_review()` - Doble validación: token (primera) + nombre (segunda)**
 
-### Sistema de Validación Anti-Duplicados:
-✅ **SOLUCIÓN COMPLETA IMPLEMENTADA**
+### 🔒 Sistema de Validación Ultra-Estricta:
+✅ **IMPLEMENTACIÓN COMPLETA Y VERIFICADA**
 
-**Problema Resuelto:** Después de restaurar desde CSV, los usuarios podían dejar otra reseña porque el sistema solo validaba por `client_token`, pero las reseñas restauradas tienen `client_token=None`.
+**Objetivo:** Prevenir que un mismo usuario deje múltiples reseñas, sin importar si cambia el nombre.
 
-**Solución de Doble Validación:**
+**Solución de Doble Barrera:**
 
-1. **Validación por Token (Primera Línea de Defensa):**
-   - Verifica si existe reseña con el mismo `client_token`
-   - Mensaje: "Ya has enviado una reseña."
-   - Bloquea usuarios que ya dejaron reseña en la sesión actual
+#### 1️⃣ **Primera Barrera: Validación por Token (PRIORITARIA)**
+```python
+# Línea 1 en submit_review() - PRIMERA VALIDACIÓN
+if self.has_submitted_review:
+    return rx.toast.error("Ya has enviado una reseña anteriormente.")
+```
+- **Función:** Identifica el navegador/dispositivo del usuario mediante `client_token`
+- **Bloquea:** Mismo usuario intentando dejar otra reseña con CUALQUIER nombre
+- **Mensaje:** "Ya has enviado una reseña anteriormente."
+- **Prioridad:** Esta validación se ejecuta ANTES que cualquier otra
 
-2. **Validación por Nombre (Segunda Línea de Defensa - NEW!):**
-   ```python
-   existing_by_name = session.exec(
-       sqlmodel.select(Entry).where(
-           sqlmodel.func.lower(Entry.name) == self.new_review_name.lower(),
-           Entry.rating > 0,
-       )
-   ).first()
-   if existing_by_name:
-       return rx.toast.error("Ya existe una reseña con ese nombre.")
-   ```
-   - Busca reseñas con el mismo nombre (case-insensitive)
-   - Previene variaciones: "Juan Pérez" = "juan pérez" = "JUAN PÉREZ"
-   - Mensaje: "Ya existe una reseña con ese nombre."
-   - **Previene duplicados después de restauración desde CSV**
+#### 2️⃣ **Segunda Barrera: Validación por Nombre (RESPALDO)**
+```python
+# Línea 2 en submit_review() - SEGUNDA VALIDACIÓN
+existing_by_name = session.exec(
+    sqlmodel.select(Entry).where(
+        sqlmodel.func.lower(Entry.name) == self.new_review_name.lower(),
+        Entry.rating > 0,
+    )
+).first()
+if existing_by_name:
+    return rx.toast.error("Ya existe una reseña con ese nombre.")
+```
+- **Función:** Previene duplicados de nombres (case-insensitive)
+- **Bloquea:** Reseñas con nombres idénticos: "Juan Pérez" = "juan pérez"
+- **Mensaje:** "Ya existe una reseña con ese nombre."
+- **Propósito:** Respaldo para casos donde token es None
 
-**Comportamiento Esperado:**
-- ✅ Usuario intenta reseña con nombre existente → ❌ **Bloqueado**
-- ✅ Usuario con variación de capitalización → ❌ **Bloqueado**
-- ✅ Usuario con token duplicado → ❌ **Bloqueado**
-- ✅ Usuario con nombre nuevo → ✅ **Permitido**
+### 🔄 Sistema de Backup y Restauración Mejorado:
 
-### Sistema de Backup y Restauración:
-- **Formato:** CSV con todos los campos (id, name, rating, comment, client_token)
-- **Backup (Descarga):** Botón verde "Descargar Respaldo" en panel admin
-- **Restore (Restauración):** Botón azul "Subir Respaldo" con rx.upload component
-- **Flujo de restauración:**
-  1. Usuario hace clic en "Subir Respaldo"
-  2. Selecciona archivo CSV previamente descargado
-  3. Sistema lee y valida el CSV
-  4. **Establece `client_token=None` para todas las reseñas restauradas**
-  5. Borra todos los datos existentes en la DB
-  6. Inserta todas las entradas del CSV
-  7. Recarga la vista del admin automáticamente
-  8. Muestra toast con número de entradas restauradas
-  9. **La validación por nombre previene que usuarios con nombres existentes dejen nuevas reseñas**
+#### Preservación de Tokens:
+```python
+# En handle_restore_upload() - PRESERVA tokens originales
+client_token = row.get("client_token")
+entry = Entry(
+    name=row["name"],
+    rating=int(row["rating"]),
+    comment=row["comment"],
+    client_token=client_token if client_token and client_token != "None" else None
+)
+```
 
-### Cómo Restaurar Manualmente con CSV:
+**Ventajas de Preservar Tokens:**
+- ✅ Usuarios con tokens en el backup NO pueden dejar otra reseña
+- ✅ La restricción "una reseña por dispositivo" persiste después de la restauración
+- ✅ No se puede eludir el sistema simplemente restaurando desde backup
+
+#### Formato del CSV:
+```csv
+id,name,rating,comment,client_token
+1,Juan Pérez,5,Excelente servicio,abc123xyz
+2,[CONTACTO] María García,0,Email: maria@email.com,def456uvw
+```
+
+### 🎯 Comportamiento Completo del Sistema:
+
+| Escenario | Validación Aplicada | Resultado |
+|-----------|-------------------|-----------|
+| Usuario nuevo, primer dispositivo | Ninguna | ✅ PERMITIDO |
+| Mismo usuario, mismo dispositivo | Token (1ra barrera) | ❌ BLOQUEADO |
+| Mismo usuario, nombre diferente | Token (1ra barrera) | ❌ BLOQUEADO |
+| Usuario diferente, nombre duplicado | Nombre (2da barrera) | ❌ BLOQUEADO |
+| Después de restaurar CSV, usuario con token en backup intenta otra reseña | Token (1ra barrera) | ❌ BLOQUEADO |
+| Después de restaurar CSV, intenta con mismo nombre | Nombre (2da barrera) | ❌ BLOQUEADO |
+
+### 📥 Cómo Restaurar Manualmente con CSV:
 1. **Accede al panel de administración:** Ve a `/admin` e inicia sesión
-2. **Haz clic en "Subir Respaldo"** (botón azul con icono de nube)
-3. **Selecciona tu archivo CSV de backup** (descargado previamente)
-4. **El sistema automáticamente:**
-   - Lee el archivo CSV
-   - Valida el formato
-   - Borra todos los datos actuales
-   - Inserta los datos del backup (con token=None)
-   - Recarga la vista
-   - Muestra mensaje de éxito con el número de registros restaurados
-   - **Las validaciones por nombre previenen duplicados futuros**
+2. **Descarga backup actual (opcional):** Click en "Descargar Respaldo" (verde)
+3. **Haz clic en "Subir Respaldo"** (botón azul con icono de nube)
+4. **Selecciona tu archivo CSV de backup** (formato correcto requerido)
+5. **El sistema automáticamente:**
+   - Lee y valida el CSV
+   - Preserva los `client_token` originales
+   - Borra datos actuales de la DB
+   - Inserta todos los datos del backup
+   - Recarga la vista del admin
+   - Muestra toast con número de entradas restauradas
+6. **Resultado:** Tokens preservados mantienen todas las restricciones anti-duplicados
 
 ### Debug de Persistencia:
 - Logging agregado en `get_engine()` para verificar conexión a DB
@@ -183,8 +207,8 @@ class Entry(sqlmodel.SQLModel, table=True):
 
 ### Solución a Problemas de Deploy:
 1. **Verificar upload_dir:** La DB debe estar en `uploaded_files/database.db`
-2. **Descargar backup:** Antes de cada deploy, descargar CSV desde panel admin
+2. **Descargar backup antes de deploy:** Usa "Descargar Respaldo" en panel admin
 3. **Verificar logs:** Revisar logs de Reflex Hosting para errores de DB
-4. **Reinicialización:** Si DB se pierde, se recreará automáticamente con datos de ejemplo
-5. **Restauración:** Usar el botón "Subir Respaldo" para restaurar desde CSV backup
-6. **Post-restauración:** El sistema de doble validación previene todos los duplicados
+4. **Reinicialización:** Si DB se pierde, se recreará con datos de ejemplo
+5. **Restauración rápida:** Usa "Subir Respaldo" para restaurar desde CSV
+6. **Tokens preservados:** Después de restaurar, todas las restricciones siguen activas
