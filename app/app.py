@@ -145,7 +145,7 @@ def contact_form() -> rx.Component:
                         class_name="w-full p-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition",
                     ),
                     rx.el.input(
-                        placeholder="Teléfono",
+                        placeholder="Celular",
                         name="phone",
                         class_name="w-full p-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition",
                     ),

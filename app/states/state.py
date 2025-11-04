@@ -119,7 +119,7 @@ class State(rx.State):
         contact_entry: Review = {
             "name": f"[CONTACTO] {name}",
             "rating": 0,
-            "comment": f"Email: {email}\nTeléfono: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
+            "comment": f"Email: {email}\nCelular: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
             "client_token": self.router.session.client_token,
         }
         try:
