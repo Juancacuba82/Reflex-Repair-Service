@@ -119,7 +119,7 @@ def about_us_section() -> rx.Component:
     return rx.el.section(
         rx.el.div(
             rx.el.div(
-                rx.image(
+                rx.el.img(
                     src="placeholder.svg",
                     class_name="h-40 w-40 rounded-full object-cover shadow-lg mx-auto",
                 ),
