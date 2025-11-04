@@ -62,6 +62,18 @@ def admin_dashboard() -> rx.Component:
                         on_click=AdminState.download_backup,
                         class_name="bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center",
                     ),
+                    rx.upload.root(
+                        rx.el.button(
+                            rx.icon("cloud_upload", class_name="mr-2"),
+                            "Subir Respaldo",
+                            class_name="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center",
+                        ),
+                        id="restore-upload",
+                        on_drop=AdminState.handle_restore_upload(
+                            rx.upload_files(upload_id="restore-upload")
+                        ),
+                        accept={"text/csv": [".csv"]},
+                    ),
                     rx.el.button(
                         "Cerrar Sesión",
                         on_click=AdminState.logout,

@@ -6,6 +6,7 @@ import sqlmodel
 from app.states.state import Entry, get_engine
 import csv
 import io
+import reflex as rx
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Proevolution15425*")
 
@@ -87,6 +88,57 @@ class AdminState(rx.State):
 
         yield State.force_reload_reviews
         yield rx.toast.success("Entrada eliminada correctamente.")
+
+    @rx.event
+    async def handle_restore_upload(self, files: list[rx.UploadFile]):
+        """Handles the CSV backup file upload and restores the data."""
+        if not self.is_logged_in:
+            yield rx.toast.error("Acceso denegado.")
+            return
+        if not files:
+            yield rx.toast.error("No se seleccionó ningún archivo.")
+            return
+        try:
+            file = files[0]
+            csv_data = await file.read()
+            csv_text = csv_data.decode("utf-8")
+            reader = csv.DictReader(io.StringIO(csv_text))
+            new_entries = []
+            for row in reader:
+                try:
+                    entry = Entry(
+                        name=row["name"],
+                        rating=int(row["rating"]),
+                        comment=row["comment"],
+                        client_token=row.get("client_token"),
+                    )
+                    new_entries.append(entry)
+                except (KeyError, ValueError) as e:
+                    logging.exception(
+                        f"Saltando fila inválida en CSV: {row}, error: {e}"
+                    )
+                    continue
+            if not new_entries:
+                yield rx.toast.error(
+                    "El archivo CSV está vacío o en un formato incorrecto."
+                )
+                return
+            engine = get_engine()
+            with sqlmodel.Session(engine) as session:
+                session.exec(sqlmodel.delete(Entry))
+                for entry in new_entries:
+                    session.add(entry)
+                session.commit()
+            yield AdminState.load_entries
+            from app.states.state import State
+
+            yield State.force_reload_reviews
+            yield rx.toast.success(
+                f"¡Restauración completada! Se cargaron {len(new_entries)} entradas."
+            )
+        except Exception as e:
+            logging.exception(f"Error al restaurar desde el backup: {e}")
+            yield rx.toast.error("Ocurrió un error durante la restauración.")
 
     @rx.event
     def download_backup(self):

@@ -61,6 +61,8 @@
 - [x] **Mejorar logging para debug de problemas de persistencia**
 - [x] **Agregar sistema de backup CSV descargable desde panel admin**
 - [x] **Implementar botón "Descargar Respaldo" con icono y estilo verde**
+- [x] **Implementar botón "Subir Respaldo" (restore) con icono azul y rx.upload**
+- [x] **Crear función handle_restore_upload() para procesar CSV y restaurar datos**
 
 ---
 
@@ -105,12 +107,32 @@ class Entry(sqlmodel.SQLModel, table=True):
 - `State.has_submitted_review` - Verifica si usuario ya dejó reseña
 - `AdminState.filtered_entries` - Filtra entre todos/reseñas/contactos
 - `AdminState.download_backup()` - Descarga CSV con todos los datos
+- `AdminState.handle_restore_upload()` - **NUEVO:** Restaura datos desde CSV backup
 
-### Sistema de Backup:
-- **Formato:** CSV con todos los campos
-- **Acceso:** Panel de administración (botón verde "Descargar Respaldo")
-- **Contenido:** id, name, rating, comment, client_token
-- **Propósito:** Respaldo manual antes de deploys importantes
+### Sistema de Backup y Restauración:
+- **Formato:** CSV con todos los campos (id, name, rating, comment, client_token)
+- **Backup (Descarga):** Botón verde "Descargar Respaldo" en panel admin
+- **Restore (Restauración):** Botón azul "Subir Respaldo" con rx.upload component
+- **Flujo de restauración:**
+  1. Usuario hace clic en "Subir Respaldo"
+  2. Selecciona archivo CSV previamente descargado
+  3. Sistema lee y valida el CSV
+  4. Borra todos los datos existentes en la DB
+  5. Inserta todas las entradas del CSV
+  6. Recarga la vista del admin automáticamente
+  7. Muestra toast con número de entradas restauradas
+
+### Cómo Restaurar Manualmente con CSV:
+1. **Accede al panel de administración:** Ve a `/admin` e inicia sesión
+2. **Haz clic en "Subir Respaldo"** (botón azul con icono de nube)
+3. **Selecciona tu archivo CSV de backup** (descargado previamente)
+4. **El sistema automáticamente:**
+   - Lee el archivo CSV
+   - Valida el formato
+   - Borra todos los datos actuales
+   - Inserta los datos del backup
+   - Recarga la vista
+   - Muestra mensaje de éxito con el número de registros restaurados
 
 ### Debug de Persistencia:
 - Logging agregado en `get_engine()` para verificar conexión a DB
@@ -123,4 +145,4 @@ class Entry(sqlmodel.SQLModel, table=True):
 2. **Descargar backup:** Antes de cada deploy, descargar CSV desde panel admin
 3. **Verificar logs:** Revisar logs de Reflex Hosting para errores de DB
 4. **Reinicialización:** Si DB se pierde, se recreará automáticamente con datos de ejemplo
-5. **Restauración:** Usar el CSV de backup para restaurar datos manualmente si es necesario
+5. **Restauración:** Usar el botón "Subir Respaldo" para restaurar desde CSV backup
