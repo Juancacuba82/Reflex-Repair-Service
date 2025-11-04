@@ -23,12 +23,12 @@ def header() -> rx.Component:
                 ),
                 rx.el.a(
                     "Reseñas",
-                    href="#reseñas",
+                    href="/#reseñas",
                     class_name="text-gray-600 hover:text-orange-500 transition-colors",
                 ),
                 rx.el.a(
                     "Contacto",
-                    href="#contacto",
+                    href="/#contacto",
                     class_name="text-gray-600 hover:text-orange-500 transition-colors",
                 ),
                 class_name="flex items-center gap-6 text-md font-medium",
