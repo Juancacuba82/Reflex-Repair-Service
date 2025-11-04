@@ -126,7 +126,7 @@ class State(rx.State):
         """Event handler to ensure reviews are loaded on page load."""
         logging.info("Page loaded. Running DB checks and reloading state.")
         add_default_entries_if_empty()
-        self._reloader += 1
+        yield State.force_reload_reviews()
 
     @rx.event
     def force_reload_reviews(self):
