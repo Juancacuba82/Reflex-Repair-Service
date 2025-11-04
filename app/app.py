@@ -118,15 +118,24 @@ def services_section() -> rx.Component:
 def about_us_section() -> rx.Component:
     return rx.el.section(
         rx.el.div(
-            rx.el.h2(
-                "Sobre Nosotros",
-                class_name="text-3xl font-bold text-center text-gray-800 mb-8",
+            rx.el.div(
+                rx.image(
+                    src="placeholder.svg",
+                    class_name="h-40 w-40 rounded-full object-cover shadow-lg mx-auto",
+                ),
+                rx.el.h2(
+                    "Juan Carlos", class_name="text-3xl font-bold text-gray-800 mt-6"
+                ),
+                rx.el.p(
+                    "Técnico Especializado", class_name="text-orange-500 font-semibold"
+                ),
+                rx.el.p(
+                    "Apasionado por la tecnología y dedicado a ofrecer soluciones efectivas. Con años de experiencia, garantizo un servicio de calidad y tu satisfacción.",
+                    class_name="max-w-xl mx-auto text-gray-600 mt-4 leading-relaxed",
+                ),
+                class_name="text-center",
             ),
-            rx.el.p(
-                "Somos un equipo de técnicos apasionados por la tecnología, dedicados a ofrecer soluciones efectivas y transparentes. Con años de experiencia en el sector, garantizamos un servicio de calidad y la satisfacción de nuestros clientes.",
-                class_name="max-w-3xl mx-auto text-center text-gray-600 leading-relaxed",
-            ),
-            class_name="container mx-auto py-16 px-4",
+            class_name="container mx-auto py-20 px-4",
         ),
         class_name="bg-gray-50",
     )
