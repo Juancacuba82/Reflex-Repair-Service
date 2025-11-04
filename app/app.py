@@ -176,7 +176,7 @@ def footer() -> rx.Component:
     return rx.el.footer(
         rx.el.div(
             rx.el.p(
-                "© 2024 Juanca PC. Todos los derechos reservados.",
+                f"© 2014-{State.current_year} Juanca PC. Todos los derechos reservados.",
                 class_name="text-gray-500",
             ),
             rx.el.div(

@@ -82,6 +82,9 @@ def save_reviews_to_file(reviews: list[Review]):
     save_to_json_file(REVIEWS_FILENAME, reviews)
 
 
+import datetime
+
+
 class State(rx.State):
     """The base state for the app."""
 
@@ -89,6 +92,10 @@ class State(rx.State):
     new_review_comment: str = ""
     new_review_rating: int = 0
     hover_rating: int = 0
+
+    @rx.var
+    def current_year(self) -> int:
+        return datetime.date.today().year
 
     @rx.var
     def reviews(self) -> list[Review]:
