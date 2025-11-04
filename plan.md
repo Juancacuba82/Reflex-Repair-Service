@@ -16,7 +16,7 @@
 - [x] Diseñar galería de reseñas con calificaciones y comentarios
 - [x] Agregar validación de formularios
 - [x] Implementar almacenamiento compartido entre todos los usuarios usando assets/reviews.json
-- [x] **CORREGIDO: Sistema de persistencia ahora usa assets/reviews.json para git**
+- [x] **Sistema de persistencia usa assets/reviews.json para git**
 
 ---
 
@@ -30,13 +30,13 @@
 
 ---
 
-## Phase 4: Sistema de Notificación por Email ✅
-- [x] Implementar función de envío de emails con aiosmtplib asíncrono
-- [x] Configurar variables de entorno para credenciales SMTP seguras
-- [x] Actualizar evento submit_contact_form para enviar email al recibir consultas
-- [x] Agregar manejo de errores y logging robusto
-- [x] Crear EmailState separado con evento background para envío asíncrono
-- [x] Mantener guardado en JSON como backup de todas las consultas
+## Phase 4: Sistema Unificado de Almacenamiento ✅
+- [x] Unificar almacenamiento de contactos y reseñas en un solo archivo reviews.json
+- [x] Implementar sistema de rating=0 para contactos privados (no visibles en página)
+- [x] Agregar filtro en computed var para mostrar solo reseñas con rating > 0
+- [x] Eliminar sistema de email y archivo contacts.json separado
+- [x] Simplificar código eliminando dependencias innecesarias (aiosmtplib)
+- [x] Mantener prefijo [CONTACTO] en nombre para fácil identificación en archivo JSON
 
 ---
 
@@ -44,29 +44,33 @@
 
 **Estado**: Todas las fases completadas (4/4)
 
-**Próximos pasos para deploy:**
+**Características finales:**
+- ✅ Página principal con hero, servicios, sobre nosotros, reseñas y contacto
+- ✅ Página detallada de servicios con 6 servicios completos
+- ✅ Sistema de calificaciones con estrellas (1-5)
+- ✅ Formulario de reseñas públicas (se muestran en la página)
+- ✅ Formulario de contacto privado (se guarda en JSON pero no se muestra)
+- ✅ Almacenamiento unificado en reviews.json con git
+- ✅ Diseño Material Design 3 con animaciones suaves
+- ✅ Responsive design completo
 
-1. **Configurar variables de entorno en Reflex Cloud:**
-   ```bash
-   reflex deployments env set SMTP_HOST smtp.gmail.com
-   reflex deployments env set SMTP_PORT 587
-   reflex deployments env set SMTP_USER tu-email@gmail.com
-   reflex deployments env set SMTP_PASSWORD tu-app-password
-   ```
+**Sistema de almacenamiento:**
+```json
+{
+  "name": "Usuario",           // Reseña pública (rating > 0)
+  "rating": 5,                  // Se muestra en la página
+  "comment": "Excelente!"
+}
 
-2. **Asegurar persistencia de datos:**
-   ```bash
-   git add assets/reviews.json assets/contacts.json
-   git commit -m "Add persistent data files"
-   ```
+{
+  "name": "[CONTACTO] Juan",    // Contacto privado (rating = 0)
+  "rating": 0,                  // NO se muestra en la página
+  "comment": "Email: juan@example.com\nTeléfono: 555-1234\n\nMensaje: Consulta..."
+}
+```
 
-3. **Deploy a producción:**
-   ```bash
-   reflex login
-   reflex deploy --app-name my-web-lime-piano --region us-west
-   ```
-
-**Notas importantes:**
-- ⚠️ Sin configurar variables SMTP, los emails NO se enviarán (pero se guardarán en assets/contacts.json)
-- ✅ La aplicación funciona completamente sin SMTP (solo falta notificación por email)
-- 🔒 Usa "App Password" de Gmail en lugar de tu contraseña normal para mayor seguridad
+**Deploy:**
+```bash
+reflex login
+reflex deploy --app-name juanca-pc
+```

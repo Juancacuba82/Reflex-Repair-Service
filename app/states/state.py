@@ -5,7 +5,6 @@ from typing import TypedDict, Optional
 import reflex as rx
 
 REVIEWS_FILENAME = "reviews.json"
-CONTACTS_FILENAME = "contacts.json"
 
 
 class Review(TypedDict):
@@ -99,8 +98,9 @@ class State(rx.State):
 
     @rx.var
     def reviews(self) -> list[Review]:
-        """Computed var to get reviews from the shared source."""
-        return load_reviews_from_file()
+        """Computed var to get reviews from the shared source, filtering out contacts."""
+        all_entries = load_reviews_from_file()
+        return [entry for entry in all_entries if entry.get("rating", 0) > 0]
 
     @rx.event
     def on_load(self):
@@ -109,29 +109,26 @@ class State(rx.State):
 
     @rx.event
     def submit_contact_form(self, form_data: dict):
-        """Handles the contact form submission and saves it to a JSON file."""
-        from app.states.email_state import EmailState
-
-        new_submission: ContactSubmission = {
-            "name": form_data.get("name", ""),
-            "email": form_data.get("email", ""),
-            "phone": form_data.get("phone", ""),
-            "message": form_data.get("message", ""),
-        }
-        if not all(
-            [new_submission["name"], new_submission["email"], new_submission["message"]]
-        ):
+        """Handles the contact form submission and saves it to reviews.json."""
+        name = form_data.get("name", "")
+        email = form_data.get("email", "")
+        message = form_data.get("message", "")
+        if not all([name, email, message]):
             return rx.toast.error("Por favor, completa nombre, email y mensaje.")
+        contact_entry: Review = {
+            "name": f"[CONTACTO] {name}",
+            "rating": 0,
+            "comment": f"Email: {email}\nTeléfono: {form_data.get('phone', 'N/A')}\n\nMensaje: {message}",
+        }
         try:
-            contacts = load_from_json_file(CONTACTS_FILENAME, [])
-            contacts.append(new_submission)
-            save_to_json_file(CONTACTS_FILENAME, contacts)
+            all_entries = load_reviews_from_file()
+            all_entries.append(contact_entry)
+            save_reviews_to_file(all_entries)
         except Exception as e:
             logging.exception(f"Failed to save contact form submission: {e}")
             return rx.toast.error(
                 "Hubo un error al guardar tu mensaje. Inténtalo de nuevo."
             )
-        yield EmailState.send_contact_email(form_data)
         yield rx.toast.success("¡Gracias por tu mensaje! Te contactaremos pronto.")
 
     @rx.event
@@ -148,9 +145,9 @@ class State(rx.State):
             "rating": self.new_review_rating,
             "comment": self.new_review_comment,
         }
-        current_reviews = load_reviews_from_file()
-        current_reviews.append(new_review)
-        save_reviews_to_file(current_reviews)
+        current_entries = load_reviews_from_file()
+        current_entries.append(new_review)
+        save_reviews_to_file(current_entries)
         self.new_review_name = ""
         self.new_review_comment = ""
         self.new_review_rating = 0

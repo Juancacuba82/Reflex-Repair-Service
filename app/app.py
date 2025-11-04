@@ -307,9 +307,6 @@ def reviews_section() -> rx.Component:
     )
 
 
-from app.pages.servicios import servicios
-
-
 def index() -> rx.Component:
     return rx.el.main(
         header(),
@@ -335,4 +332,6 @@ app = rx.App(
     ],
 )
 app.add_page(index, on_load=State.on_load)
+from app.pages.servicios import servicios
+
 app.add_page(servicios, route="/servicios")
