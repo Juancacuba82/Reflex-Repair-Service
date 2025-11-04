@@ -177,33 +177,9 @@ def footer() -> rx.Component:
         rx.el.div(
             rx.el.p(
                 f"© 2014-{State.current_year} Juanca PC. Todos los derechos reservados.",
-                class_name="text-gray-500",
+                class_name="text-gray-500 text-center",
             ),
-            rx.el.div(
-                rx.el.a(
-                    rx.icon(
-                        "twitter",
-                        class_name="h-6 w-6 text-gray-500 hover:text-orange-500",
-                    ),
-                    href="#",
-                ),
-                rx.el.a(
-                    rx.icon(
-                        "facebook",
-                        class_name="h-6 w-6 text-gray-500 hover:text-orange-500",
-                    ),
-                    href="#",
-                ),
-                rx.el.a(
-                    rx.icon(
-                        "instagram",
-                        class_name="h-6 w-6 text-gray-500 hover:text-orange-500",
-                    ),
-                    href="#",
-                ),
-                class_name="flex gap-4",
-            ),
-            class_name="container mx-auto flex justify-between items-center py-6 px-4",
+            class_name="container mx-auto flex justify-center items-center py-6 px-4",
         ),
         class_name="bg-gray-100 border-t border-gray-200",
     )
