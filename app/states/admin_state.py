@@ -45,7 +45,7 @@ def save_all_entries(entries: list[Review]):
 
 
 class AdminState(rx.State):
-    is_logged_in: bool = rx.LocalStorage(False, name="is_admin_logged_in")
+    is_logged_in: bool = False
     password: str = ""
     error_message: str = ""
     all_entries: list[Review] = []
@@ -69,11 +69,7 @@ class AdminState(rx.State):
         self.all_entries = []
         self.error_message = ""
         self.password = ""
-        return [
-            AdminState.set_is_logged_in(False),
-            rx.clear_local_storage(),
-            rx.redirect("/"),
-        ]
+        return [AdminState.set_is_logged_in(False), rx.redirect("/")]
 
     @rx.event
     def load_entries(self):
