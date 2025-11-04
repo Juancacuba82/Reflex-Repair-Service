@@ -75,8 +75,6 @@ class AdminState(rx.State):
     def load_entries(self):
         if not self.is_logged_in:
             self.all_entries = []
-            self.error_message = ""
-            self.password = ""
             return
         self.all_entries = load_all_entries()
 
