@@ -275,7 +275,17 @@ def reviews_section() -> rx.Component:
                 rx.foreach(State.reviews, review_card),
                 class_name="grid md:grid-cols-2 gap-8 mb-12",
             ),
-            review_form(),
+            rx.cond(
+                State.has_submitted_review,
+                rx.el.div(
+                    rx.el.p(
+                        "¡Gracias por tu reseña!",
+                        class_name="text-center text-lg font-medium text-gray-700 bg-green-100 p-4 rounded-lg",
+                    ),
+                    class_name="flex justify-center",
+                ),
+                review_form(),
+            ),
             id="reseñas",
             class_name="container mx-auto py-16 px-4",
         ),

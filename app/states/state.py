@@ -98,6 +98,19 @@ class State(rx.State):
         all_entries = load_all_entries_from_file()
         return [entry for entry in all_entries if entry.get("rating", 0) > 0]
 
+    @rx.var
+    def has_submitted_review(self) -> bool:
+        """Check if the current user has already submitted a review."""
+        _ = self._reloader
+        client_token = self.router.session.client_token
+        if not client_token:
+            return False
+        all_entries = load_all_entries_from_file()
+        for entry in all_entries:
+            if entry.get("client_token") == client_token and entry.get("rating", 0) > 0:
+                return True
+        return False
+
     @rx.event
     def on_load(self):
         """Event handler to ensure reviews are loaded on page load."""
