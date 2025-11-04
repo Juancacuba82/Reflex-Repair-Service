@@ -179,7 +179,13 @@ def footer() -> rx.Component:
                 f"© 2014-{State.current_year} Juanca PC. Todos los derechos reservados.",
                 class_name="text-gray-500 text-center",
             ),
-            class_name="container mx-auto flex justify-center items-center py-6 px-4",
+            rx.el.a(
+                rx.icon("message-circle", class_name="h-8 w-8 text-green-500"),
+                href="https://wa.me/5491122334455",
+                is_external=True,
+                class_name="hover:opacity-80 transition-opacity",
+            ),
+            class_name="container mx-auto flex justify-between items-center py-6 px-4",
         ),
         class_name="bg-gray-100 border-t border-gray-200",
     )
@@ -293,6 +299,15 @@ def reviews_section() -> rx.Component:
     )
 
 
+def whatsapp_button() -> rx.Component:
+    return rx.el.a(
+        rx.icon("message-circle", class_name="h-8 w-8 text-white"),
+        href="https://wa.me/5491122334455",
+        is_external=True,
+        class_name="bg-green-500 p-4 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-110 fixed bottom-6 right-6 z-50",
+    )
+
+
 def index() -> rx.Component:
     return rx.el.main(
         header(),
@@ -302,6 +317,7 @@ def index() -> rx.Component:
         reviews_section(),
         contact_form(),
         footer(),
+        whatsapp_button(),
         class_name="font-['Poppins'] bg-white",
     )
 
