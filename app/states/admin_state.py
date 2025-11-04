@@ -16,13 +16,6 @@ class Review(TypedDict):
     client_token: str | None
 
 
-def get_upload_dir_path() -> Path:
-    """Get the path to the upload directory."""
-    upload_dir = rx.get_upload_dir()
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    return upload_dir
-
-
 def load_all_entries() -> list[Review]:
     """Load all entries (reviews and contacts) from the JSON file."""
     file_path = get_upload_dir_path() / REVIEWS_FILENAME

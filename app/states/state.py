@@ -69,7 +69,7 @@ def save_to_json_file(filename: str, data: list):
 
 
 def load_all_entries_from_file() -> list[Review]:
-    """Load all entries from the JSON file."""
+    """Load all entries from the JSON file, ensuring it's created if it doesn't exist."""
     return load_from_json_file(REVIEWS_FILENAME, DEFAULT_REVIEWS)
 
 
