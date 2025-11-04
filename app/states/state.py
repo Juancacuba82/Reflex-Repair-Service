@@ -78,8 +78,8 @@ def load_reviews_from_file() -> list[Review]:
 def save_reviews_to_file(reviews: list[Review]):
     """Save reviews to the JSON file and update the global cache."""
     global _reviews_cache
-    _reviews_cache = reviews
     save_to_json_file(REVIEWS_FILENAME, reviews)
+    _reviews_cache = None
 
 
 import datetime
@@ -143,19 +143,18 @@ class State(rx.State):
             or self.new_review_rating == 0
         ):
             return rx.toast.error("Por favor, completa todos los campos de la reseña.")
-        current_reviews = load_reviews_from_file().copy()
         new_review: Review = {
             "name": self.new_review_name,
             "rating": self.new_review_rating,
             "comment": self.new_review_comment,
         }
-        current_reviews.append(new_review)
-        save_reviews_to_file(current_reviews)
+        self.reviews.append(new_review)
+        save_reviews_to_file(self.reviews)
         self.new_review_name = ""
         self.new_review_comment = ""
         self.new_review_rating = 0
         self.hover_rating = 0
-        return rx.toast.success("¡Gracias por tu reseña!")
+        yield rx.toast.success("¡Gracias por tu reseña!")
 
     @rx.event
     def set_hover_rating(self, rating: int):
