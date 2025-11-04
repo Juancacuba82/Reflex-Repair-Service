@@ -148,13 +148,15 @@ class State(rx.State):
             "rating": self.new_review_rating,
             "comment": self.new_review_comment,
         }
-        self.reviews.append(new_review)
-        save_reviews_to_file(self.reviews)
+        current_reviews = load_reviews_from_file()
+        current_reviews.append(new_review)
+        save_reviews_to_file(current_reviews)
         self.new_review_name = ""
         self.new_review_comment = ""
         self.new_review_rating = 0
         self.hover_rating = 0
         yield rx.toast.success("¡Gracias por tu reseña!")
+        yield State.on_load
 
     @rx.event
     def set_hover_rating(self, rating: int):
