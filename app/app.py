@@ -120,7 +120,7 @@ def about_us_section() -> rx.Component:
         rx.el.div(
             rx.el.div(
                 rx.image(
-                    src="https://api.dicebear.com/9.x/initials/svg?seed=Juan%20Carlos&backgroundColor=f97316&textColor=ffffff&size=160",
+                    src="placeholder.svg",
                     alt="Avatar de Juan Carlos",
                     class_name="h-40 w-40 rounded-full object-cover shadow-lg mx-auto",
                 ),
