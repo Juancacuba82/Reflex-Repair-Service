@@ -8,5 +8,10 @@
     "name": "Usuario Agradecido",
     "rating": 4,
     "comment": "Buena atención y resolvieron mi problema de software a distancia. Lo recomiendo."
+  },
+  {
+    "name": "Oscar",
+    "rating": 5,
+    "comment": "Todo excelente, super recomendable"
   }
 ]
