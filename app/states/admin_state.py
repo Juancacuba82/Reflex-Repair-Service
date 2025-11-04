@@ -45,7 +45,7 @@ def save_all_entries(entries: list[Review]):
 
 
 class AdminState(rx.State):
-    is_logged_in: bool = False
+    is_logged_in: bool = rx.LocalStorage(False, name="is_admin_logged_in")
     password: str = ""
     error_message: str = ""
     all_entries: list[Review] = []
@@ -93,9 +93,13 @@ class AdminState(rx.State):
             for entry in current_entries
             if not (
                 entry["name"] == entry_to_delete["name"]
-                and entry["comment"] == entry_to_delete["comment"]
+                and entry.get("comment") == entry_to_delete.get("comment")
+                and (entry.get("rating") == entry_to_delete.get("rating"))
             )
         ]
         save_all_entries(updated_entries)
         yield AdminState.load_entries
+        from app.states.state import State
+
+        yield State.force_reload_reviews
         yield rx.toast.success("Entrada eliminada correctamente.")

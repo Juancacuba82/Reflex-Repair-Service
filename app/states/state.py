@@ -108,6 +108,13 @@ class State(rx.State):
         load_reviews_from_file()
 
     @rx.event
+    def force_reload_reviews(self):
+        """Forces a reload of reviews from the source file."""
+        global _reviews_cache
+        _reviews_cache = None
+        load_reviews_from_file()
+
+    @rx.event
     def submit_contact_form(self, form_data: dict):
         """Handles the contact form submission and saves it to reviews.json."""
         name = form_data.get("name", "")
